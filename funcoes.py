@@ -4,12 +4,9 @@ from scipy.fft import fft2, ifft2
 
 def unwrap(u_diff):
     u_unwrap = np.copy(u_diff)
-    if np.count_nonzero(u_diff > 0) > len(u_diff) / 2:
-        u_unwrap[u_diff < -np.pi] = u_unwrap[u_diff < -np.pi] + 2 * np.pi
-    else:
-        u_unwrap[u_diff > np.pi] = u_unwrap[u_diff > np.pi] - 2 * np.pi
+    u_unwrap[u_diff < -np.pi] = u_unwrap[u_diff < -np.pi] + 2 * np.pi
+    u_unwrap[u_diff > np.pi] = u_unwrap[u_diff > np.pi] - 2 * np.pi
     return u_unwrap
-
 
 def power_iteration(Q, num_iterations=10, tol=1e-8):
     v = np.ones(Q.shape[1], dtype=np.complex128)

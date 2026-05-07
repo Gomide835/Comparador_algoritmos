@@ -45,10 +45,12 @@ for i in range(1, len(df_gabarito)):
         u, v = fftshift(u), fftshift(v)
         omega_u, omega_v = fftshift(omega_u), fftshift(omega_v)
 
-    u_restored = np.unwrap(u_angle)
-    v_restored = np.unwrap(v_angle)
-    u_restored = u_restored - np.mean(u_restored)
-    v_restored = v_restored - np.mean(v_restored)
+    u_diff = np.diff(u_angle)
+    v_diff = np.diff(v_angle)
+    u_unwrap = unwrap(u_diff)
+    v_unwrap = unwrap(v_diff)
+    u_restored = np.cumsum(u_unwrap)
+    v_restored = np.cumsum(v_unwrap)
     u_restored = u_restored - np.mean(u_restored)
     v_restored = v_restored - np.mean(v_restored)
 
@@ -57,20 +59,15 @@ for i in range(1, len(df_gabarito)):
     b = lstsq(np.array([omega_v[1:200], np.ones_like(omega_v[1:200])]).transpose(),
               v_restored[1:200], rcond=None)[0]
 
-    dx_svd = b[0] / (2 * np.pi)
-    dy_svd = a[0] / (2 * np.pi)
+    dx_svd = -b[0] / (2 * np.pi)
+    dy_svd = -a[0] / (2 * np.pi)
     tempo_svd_ms = (time.perf_counter() - inicio_scipy) * 1000
 
-    # =====================================================================
-    # BLOCO DE CAPTURA DE DADOS PARA DEBUG (NOVO)
-    # =====================================================================
+    #Coleta dos Frames pra investigação
     frames_investigacao = [350,550]
 
     if i in frames_investigacao:
-        # Calculando o 'q' no domínio espacial (necessário para o seu 1º plot)
         q = np.real(ifft2(Q))
-
-        # Salvando todas as variáveis locais necessárias em um arquivo .npz
         nome_arquivo_debug = f"debug_svd_frame_{i}.npz"
         np.savez(
             nome_arquivo_debug,
@@ -99,10 +96,12 @@ for i in range(1, len(df_gabarito)):
         u, v = fftshift(u), fftshift(v)
         omega_u, omega_v = fftshift(omega_u), fftshift(omega_v)
 
-    u_restored = np.unwrap(u_angle)
-    v_restored = np.unwrap(v_angle)
-    u_restored = u_restored - np.mean(u_restored)
-    v_restored = v_restored - np.mean(v_restored)
+    u_diff = np.diff(u_angle)
+    v_diff = np.diff(v_angle)
+    u_unwrap = unwrap(u_diff)
+    v_unwrap = unwrap(v_diff)
+    u_restored = np.cumsum(u_unwrap)
+    v_restored = np.cumsum(v_unwrap)
     u_restored = u_restored - np.mean(u_restored)
     v_restored = v_restored - np.mean(v_restored)
 
@@ -111,8 +110,8 @@ for i in range(1, len(df_gabarito)):
     b = lstsq(np.array([omega_v[1:200], np.ones_like(omega_v[1:200])]).transpose(),
               v_restored[1:200], rcond=None)[0]
 
-    dx_pi = b[0] / (2 * np.pi)
-    dy_pi = a[0] / (2 * np.pi)
+    dx_pi = -b[0] / (2 * np.pi)
+    dy_pi = -a[0] / (2 * np.pi)
     tempo_pi_ms = (time.perf_counter() - inicio_scipy) * 1000
 
     # ALGORITMO 3: Phase Correlation
@@ -181,3 +180,4 @@ for i in range(1, len(df_gabarito)):
 print("Salvando os resultados dos algoritmos...")
 df_resultados = pd.DataFrame(dados_totais)
 df_resultados.to_pickle("dados_resultados.pkl")
+df_resultados.to_csv("dados_resultados.csv")

@@ -6,9 +6,14 @@ from sklearn import linear_model
 
 # Tabela:
 plt.close('all')
-
+# Para avaliar cada algoritmo
 tabela = pd.read_pickle("dados_resultados.pkl")
-tabela = tabela[tabela['Algoritmo'].isin(['SVD base', 'Power Iteration', 'Phase Correlation', 'Dense Optical Flow'])]
+tabela = tabela[tabela['Algoritmo'].isin([
+'SVD base',
+'Power Iteration',
+'Phase Correlation',
+'Dense Optical Flow'
+])]
 estatisticas = tabela.groupby('Algoritmo').agg({
     'Tempo (ms)': ['mean', 'max', 'min'],
     'Erro X (px)': ['mean', 'max', 'min'],
@@ -69,6 +74,7 @@ eixos_adv[0].set_title('1. Erro Absoluto por Frame')
 eixos_adv[0].set_xlabel('Número do Frame')
 eixos_adv[0].set_ylabel('Erro (Pixels)')
 eixos_adv[0].grid(True, linestyle='--', alpha=0.6)
+eixos_adv[0].legend()
 
 # GRÁFICO 2: Trajetória Real vs Estimada (Cumulativa)
 df_base = tabela[tabela['Algoritmo'] == algoritmos_todos[0]]
@@ -92,7 +98,7 @@ eixos_adv[1].grid(True, linestyle='--', alpha=0.6)
 eixos_adv[1].legend()
 
 # GRÁFICO 3: Variação de Gap Pixel (Estabilidade)
-for algo in algoritmos_plot:  
+for algo in algoritmos_plot:
     df_algo = tabela[tabela['Algoritmo'] == algo]
     gap_x = df_algo['dx_est'] - df_algo['dx_real']
     eixos_adv[2].plot(df_algo['Frame'], gap_x, label=algo, color=cores_algoritmos[algo], alpha=0.7)
@@ -102,15 +108,13 @@ eixos_adv[2].set_xlabel('Número do Frame')
 eixos_adv[2].set_ylabel('Gap Estimativa - Real (pixels)')
 eixos_adv[2].axhline(0, color='black', linestyle='-', linewidth=1)
 eixos_adv[2].grid(True, linestyle='--', alpha=0.6)
+eixos_adv[2].legend()
 
 plt.tight_layout()
 plt.savefig("graficos_avancados_rastreamento.png", dpi=300)
 plt.show()
 
-# =====================================================================
-# INÍCIO DA MURALHA DE CÓDIGOS (ANÁLISE DE DIAGNÓSTICO SVD)
-# =====================================================================
-print("\n--- Iniciando Perícia Técnica nos Frames de Falha ---")
+# Código pra coleta dos plots SVD
 frames_investigacao = [350, 550]
 
 for frame_id in frames_investigacao:
@@ -134,51 +138,76 @@ for frame_id in frames_investigacao:
         u_diff = np.diff(u_unwrap)
         v_diff = np.diff(v_unwrap)
 
-        # Plot 1: Espacial vs Fase 2D
-        plt.figure(figsize=(10, 4))
+        # Plot 1: matriz q
+        plt.figure()
         plt.subplot(1, 2, 1)
         plt.imshow(q[:200, :200])
-        plt.title(f'Frame {frame_id}: Espacial ' + r'$\mathbf{q}$')
+        plt.xlabel(r'y [sample]'), plt.ylabel(r'x [sample]')
+        title = plt.title(r'$\mathbf{q}$')
         plt.subplot(1, 2, 2)
         plt.imshow(np.angle(Q), extent=[0, 1, 0, 1])
-        plt.title(r'Fase $\angle(\mathbf{Q})$')
+        plt.xlabel(r'$\Omega_y$ [rad/sample]'), plt.ylabel(r'$\Omega_x$ [rad/sample]')
+        plt.title(r'$\angle(\mathbf{Q})$')
         plt.tight_layout()
 
         # Plot 2: Vetores Singulares u e v
         plt.figure(figsize=(12, 4))
         plt.subplot(2, 2, 1), plt.plot(omega_u, np.real(u)), plt.plot(omega_u, np.imag(u))
-        plt.title(r'Vetores Singulares $\mathbf{u}$')
+        plt.legend(['real', 'imag'])
+        plt.title(r'$\mathbf{u}$')
         plt.subplot(2, 2, 3), plt.plot(omega_u, np.abs(u)), plt.plot(omega_u, u_angle)
+        plt.legend(['magnitude', 'phase'])
+        plt.xlabel(r'$\Omega_x$ [rad/sample]')
+
         plt.subplot(2, 2, 2), plt.plot(omega_v, np.real(v)), plt.plot(omega_v, np.imag(v))
-        plt.title(r'Vetores Singulares $\mathbf{v}$')
+        plt.legend(['real', 'imag'])
+        plt.title(r'$\mathbf{v}$')
         plt.subplot(2, 2, 4), plt.plot(omega_v, np.abs(v)), plt.plot(omega_v, v_angle)
+        plt.legend(['magnitude', 'phase'])
+        plt.xlabel(r'$\Omega_y$ [rad/sample]')
         plt.tight_layout()
 
         # Plot 3: Unwrapping e Restauração
-        min_p = min(np.min(u_restored[1:]), np.min(v_restored[1:])) * 1.1
-        max_p = max(np.max(u_restored[1:]), np.max(v_restored[1:])) * 1.1
+        min, max = np.min([np.min(u_restored), np.min(v_restored)]) * 1.1, np.max(
+            [np.max(u_restored), np.max(v_restored)]) * 1.1
+        plt.figure(figsize=(12, 7))
 
-        plt.figure(figsize=(12, 6))
         plt.subplot(3, 2, 1), plt.stem(omega_u[1:], u_diff, markerfmt='.')
-        plt.title(r'Diferencial e Unwrapping $\mathbf{u}$ (Eixo X)')
-        plt.subplot(3, 2, 3), plt.stem(omega_u[1:], u_unwrap[1:], markerfmt='.')
-        plt.subplot(3, 2, 5), plt.plot(omega_u[1:], u_restored[1:])
+        plt.legend(['diff'])
+        plt.title(r'$\angle\mathbf{u}$')
+        plt.subplot(3, 2, 3), plt.stem(omega_u, u_unwrap, markerfmt='.')
+        plt.legend(['unwrapped'])
+        plt.subplot(3, 2, 5), plt.plot(omega_u[1:], u_restored)
+        plt.legend(['restored'])
+        plt.axis([plt.axis()[0], plt.axis()[1], min, max])
+        plt.xlabel(r'$\Omega_x$ [rad/sample]')
+
         plt.subplot(3, 2, 2), plt.stem(omega_v[1:], v_diff, markerfmt='.')
-        plt.title(r'Diferencial e Unwrapping $\mathbf{v}$ (Eixo Y)')
-        plt.subplot(3, 2, 4), plt.stem(omega_v[1:], v_unwrap[1:], markerfmt='.')
-        plt.subplot(3, 2, 6), plt.plot(omega_v[1:], v_restored[1:])
+        plt.legend(['diff'])
+        plt.title(r'$\angle\mathbf{v}$')
+        plt.subplot(3, 2, 4), plt.stem(omega_v, v_unwrap, markerfmt='.')
+        plt.legend(['unwrapped'])
+        plt.subplot(3, 2, 6), plt.plot(omega_v[1:], v_restored)
+        plt.axis([plt.axis()[0], plt.axis()[1], min, max])
+        plt.legend(['restored'])
+        plt.xlabel(r'$\Omega_y$ [rad/sample]')
         plt.tight_layout()
 
-        # Plot 4: Ajuste Linear e RANSAC
-        plt.figure(figsize=(12, 3))
+        # Plot 4: linear fit
+        plt.figure(figsize=(12, 2))
         plt.subplot(1, 2, 1)
-        plt.plot(omega_u[1:], u_restored[1:], label='Sinal')
-        plt.plot(omega_u[1:], a[0] * omega_u[1:] + a[1], label='Linear Fit')
-        plt.legend(), plt.title('Ajuste Linear (Deslocamento X)')
+        plt.plot(omega_u[1:], u_restored)
+        plt.plot(omega_u, a[0] * omega_u + a[1])
+        plt.axis([plt.axis()[0], plt.axis()[1], min, max])
+        plt.legend([r'$\angle\mathbf{u}$', 'linear fit'])
+        plt.xlabel(r'$\Omega_x$ [rad/sample]')
+
         plt.subplot(1, 2, 2)
-        plt.plot(omega_v[1:], v_restored[1:])
-        plt.plot(omega_v[1:], b[0] * omega_v[1:] + b[1])
-        plt.title('Ajuste Linear (Deslocamento Y)')
+        plt.plot(omega_v[1:], v_restored)
+        plt.plot(omega_v, b[0] * omega_v + b[1])
+        plt.axis([plt.axis()[0], plt.axis()[1], min, max])
+        plt.legend([r'$\angle\mathbf{v}$', 'linear fit'])
+        plt.xlabel(r'$\Omega_y$ [rad/sample]')
 
         # RANSAC para análise de ruído na fase
         ransac = linear_model.RANSACRegressor()

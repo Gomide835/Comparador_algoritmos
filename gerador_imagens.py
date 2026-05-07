@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import pandas as pd
 import matplotlib.pyplot as plt
-from funcoes import fft_shift_2d # Exemplo de como você vai precisar importar depois
+from funcoes import fft_shift_2d #add_gaussian_noise #Exemplo de como você vai precisar importar depois
 
 print("Gerando Trajetória...")
 img_bgr = cv2.imread(r"C:\Users\victo\Desktop\Faculdade\I.C\comparador_algoritmo\PIPE_IMG.jpg")
@@ -85,7 +85,7 @@ df.to_csv("artificial_dataset.csv", index=False)
 
 x_arr, z_arr = np.array(x), np.array(z)
 plt.figure()
-plt.plot(x_arr, z_arr, 'o')
+plt.plot(x_arr, z_arr, '-')
 plt.axis("equal")
 plt.title("Trajetória Gerada")
 plt.show()
