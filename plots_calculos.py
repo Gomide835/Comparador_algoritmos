@@ -4,10 +4,11 @@ import numpy as np
 import os
 from sklearn import linear_model
 
+os.makedirs("graficos", exist_ok=True)
 # Tabela:
 plt.close('all')
 # Para avaliar cada algoritmo
-tabela = pd.read_pickle("dados_resultados.pkl")
+tabela = pd.read_pickle("dados/dados_resultados.pkl")
 tabela = tabela[tabela['Algoritmo'].isin([
 'SVD base',
 'Power Iteration',
@@ -27,7 +28,7 @@ estatisticas = estatisticas.rename(columns={'mean': 'Média', 'max': 'Máx', 'mi
 print(" " * 45 + "Tabela de Resultados:\n")
 print(estatisticas.to_markdown())
 
-estatisticas.to_csv("tabela_resultados_estatisticos.csv")
+estatisticas.to_csv("dados/tabela_resultados_estatisticos.csv")
 
 # Gráfico de Barras:
 resumo = tabela.groupby('Algoritmo')[['Erro Abs (px)', 'Erro Relativo (%)', 'Tempo (ms)']].mean().reset_index()
@@ -54,7 +55,7 @@ eixos[2].set_ylabel('Milissegundos')
 eixos[2].tick_params(axis='x', rotation=15)
 
 plt.tight_layout()
-plt.savefig("comparativo_algoritmos_v2.png", dpi=300)
+plt.savefig("graficos/comparativo_algoritmos_v2.png", dpi=300)
 
 fig_adv, eixos_adv = plt.subplots(1, 3, figsize=(18, 5))
 cores_algoritmos = {'SVD base': '#d62728', 'Power Iteration': '#2ca02c', 'Phase Correlation': '#ff7f0e',
@@ -111,14 +112,14 @@ eixos_adv[2].grid(True, linestyle='--', alpha=0.6)
 eixos_adv[2].legend()
 
 plt.tight_layout()
-plt.savefig("graficos_avancados_rastreamento.png", dpi=300)
+plt.savefig("graficos/graficos_avancados_rastreamento.png", dpi=300)
 plt.show()
 
 # Código pra coleta dos plots SVD
 frames_investigacao = [350, 550]
 
 for frame_id in frames_investigacao:
-    nome_arq = f"debug_svd_frame_{frame_id}.npz"
+    nome_arq = f"dados/debug_svd_frame_{frame_id}.npz"
 
     if os.path.exists(nome_arq):
         print(f"Analisando Frame {frame_id}...")
@@ -149,6 +150,7 @@ for frame_id in frames_investigacao:
         plt.xlabel(r'$\Omega_y$ [rad/sample]'), plt.ylabel(r'$\Omega_x$ [rad/sample]')
         plt.title(r'$\angle(\mathbf{Q})$')
         plt.tight_layout()
+        plt.savefig(f"graficos/debug_svd_frame_{frame_id}_matriz_q.png", dpi=300) # <--- SALVA AQUI
 
         # Plot 2: Vetores Singulares u e v
         plt.figure(figsize=(12, 4))
@@ -166,9 +168,10 @@ for frame_id in frames_investigacao:
         plt.legend(['magnitude', 'phase'])
         plt.xlabel(r'$\Omega_y$ [rad/sample]')
         plt.tight_layout()
+        plt.savefig(f"graficos/debug_svd_frame_{frame_id}_vetores.png", dpi=300) # <--- SALVA AQUI
 
         # Plot 3: Unwrapping e Restauração
-        min, max = np.min([np.min(u_restored), np.min(v_restored)]) * 1.1, np.max(
+        min_val, max_val = np.min([np.min(u_restored), np.min(v_restored)]) * 1.1, np.max(
             [np.max(u_restored), np.max(v_restored)]) * 1.1
         plt.figure(figsize=(12, 7))
 
@@ -179,7 +182,7 @@ for frame_id in frames_investigacao:
         plt.legend(['unwrapped'])
         plt.subplot(3, 2, 5), plt.plot(omega_u[1:], u_restored)
         plt.legend(['restored'])
-        plt.axis([plt.axis()[0], plt.axis()[1], min, max])
+        plt.axis([plt.axis()[0], plt.axis()[1], min_val, max_val])
         plt.xlabel(r'$\Omega_x$ [rad/sample]')
 
         plt.subplot(3, 2, 2), plt.stem(omega_v[1:], v_diff, markerfmt='.')
@@ -188,26 +191,28 @@ for frame_id in frames_investigacao:
         plt.subplot(3, 2, 4), plt.stem(omega_v, v_unwrap, markerfmt='.')
         plt.legend(['unwrapped'])
         plt.subplot(3, 2, 6), plt.plot(omega_v[1:], v_restored)
-        plt.axis([plt.axis()[0], plt.axis()[1], min, max])
+        plt.axis([plt.axis()[0], plt.axis()[1], min_val, max_val])
         plt.legend(['restored'])
         plt.xlabel(r'$\Omega_y$ [rad/sample]')
         plt.tight_layout()
+        plt.savefig(f"graficos/debug_svd_frame_{frame_id}_unwrap.png", dpi=300) # <--- SALVA AQUI
 
         # Plot 4: linear fit
         plt.figure(figsize=(12, 2))
         plt.subplot(1, 2, 1)
         plt.plot(omega_u[1:], u_restored)
         plt.plot(omega_u, a[0] * omega_u + a[1])
-        plt.axis([plt.axis()[0], plt.axis()[1], min, max])
+        plt.axis([plt.axis()[0], plt.axis()[1], min_val, max_val])
         plt.legend([r'$\angle\mathbf{u}$', 'linear fit'])
         plt.xlabel(r'$\Omega_x$ [rad/sample]')
 
         plt.subplot(1, 2, 2)
         plt.plot(omega_v[1:], v_restored)
         plt.plot(omega_v, b[0] * omega_v + b[1])
-        plt.axis([plt.axis()[0], plt.axis()[1], min, max])
+        plt.axis([plt.axis()[0], plt.axis()[1], min_val, max_val])
         plt.legend([r'$\angle\mathbf{v}$', 'linear fit'])
         plt.xlabel(r'$\Omega_y$ [rad/sample]')
+        plt.savefig(f"graficos/debug_svd_frame_{frame_id}_fit.png", dpi=300)
 
         # RANSAC para análise de ruído na fase
         ransac = linear_model.RANSACRegressor()
@@ -219,5 +224,6 @@ for frame_id in frames_investigacao:
         plt.plot(np.arange(len(u_unwrap))[ransac.inlier_mask_], u_unwrap[ransac.inlier_mask_], 'g.', label='Inliers')
         plt.title(f'RANSAC Inliers - Frame {frame_id}')
         plt.legend()
+        plt.savefig(f"graficos/debug_svd_frame_{frame_id}_ransac.png", dpi=300)
 
         plt.show()  # Pausa para análise de cada frame

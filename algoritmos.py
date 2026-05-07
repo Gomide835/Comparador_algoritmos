@@ -2,13 +2,14 @@ import time
 import numpy as np
 import cv2
 import pandas as pd
+import os
 from scipy.sparse.linalg import svds
 from scipy.fft import fft2, ifft2, fftfreq, fftshift
 from numpy.linalg import lstsq
 from funcoes import unwrap, power_iteration, phase_correlation
 
 print("Iniciando Avaliação...")
-df_gabarito = pd.read_pickle("artificial_dataset.pkl")
+df_gabarito = pd.read_pickle("dados/artificial_dataset.pkl")
 dados_totais = []
 
 for i in range(1, len(df_gabarito)):
@@ -68,7 +69,7 @@ for i in range(1, len(df_gabarito)):
 
     if i in frames_investigacao:
         q = np.real(ifft2(Q))
-        nome_arquivo_debug = f"debug_svd_frame_{i}.npz"
+        nome_arquivo_debug = f"dados/debug_svd_frame_{i}.npz"
         np.savez(
             nome_arquivo_debug,
             q=q, Q=Q, u=u, v=v,
@@ -179,5 +180,5 @@ for i in range(1, len(df_gabarito)):
 
 print("Salvando os resultados dos algoritmos...")
 df_resultados = pd.DataFrame(dados_totais)
-df_resultados.to_pickle("dados_resultados.pkl")
-df_resultados.to_csv("dados_resultados.csv")
+df_resultados.to_pickle("dados/dados_resultados.pkl")
+df_resultados.to_csv("dados/dados_resultados.csv")

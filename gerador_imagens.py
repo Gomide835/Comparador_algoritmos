@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 from funcoes import fft_shift_2d #add_gaussian_noise #Exemplo de como você vai precisar importar depois
 
 print("Gerando Trajetória...")
@@ -27,6 +28,9 @@ trajectory_description = [
 ]
 
 x0, z0 = img_size[1] // 2 + 20, img_size[0] // 2 + 20
+
+os.makedirs("frames", exist_ok=True)
+os.makedirs("dados", exist_ok=True)
 
 data = {
     "inspection": [],
@@ -67,21 +71,23 @@ for description in trajectory_description:
         shifted_img = np.clip(shifted_img, 0, 255).astype(np.uint8)
         downsampled_img = cv2.resize(shifted_img, None, fx=1 / downscale_factor, fy=1 / downscale_factor)
 
+        caminho_frame = f"frames/img_{curr_iter:05d}.png"
+
         data['order'].append(i)
-        data['filename'].append(f"img_{curr_iter:05d}.png")
+        data['filename'].append(caminho_frame)  # <--- Salva o caminho novo na tabela
         data['inspection'].append("pipe_img")
         data['delta_x'].append(rand_delta_x / downscale_factor)
         data['delta_y'].append(rand_delta_y / downscale_factor)
         data['img'].append(downsampled_img)
 
-        cv2.imwrite(f"img_{curr_iter:05d}.png", downsampled_img)
+        cv2.imwrite(caminho_frame, downsampled_img)  # <--- Salva fisicamente na pasta
         curr_iter += 1
         print(f"Gerando imagens: {curr_iter} / {total_iter} ({curr_iter / total_iter:.2%})", end='\r')
 
 print("\nSalvando DataFrame...")
 df = pd.DataFrame(data)
-df.to_pickle("artificial_dataset.pkl")
-df.to_csv("artificial_dataset.csv", index=False)
+df.to_pickle("dados/artificial_dataset.pkl")
+df.to_csv("dados/artificial_dataset.csv", index=False)
 
 x_arr, z_arr = np.array(x), np.array(z)
 plt.figure()
