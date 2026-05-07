@@ -1,0 +1,18 @@
+# Ignora todos os frames gerados (img_00000.png, etc)
+img_*.png
+
+# Ignora os arquivos de dados e tabelas geradas
+*.pkl
+*.csv
+
+# Ignora os arquivos de debug do numpy
+*.npz
+debug_svd_frame_*.npz
+
+# Ignora os plots gerados (pois você pode gerá-los de novo a qualquer momento)
+comparativo_algoritmos_v2.png
+graficos_avancados_rastreamento.png
+
+# Ignora arquivos de configuração do PyCharm e do próprio Python
+.idea/
+__pycache__/
